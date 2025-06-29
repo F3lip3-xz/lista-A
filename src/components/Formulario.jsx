@@ -1,42 +1,131 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-// Componente Formulario para agregar o actualizar evaluaciones
+/**
+ * Formulario de carga / edición de evaluaciones
+ * — Bootstrap 5 —
+ *
+ * ✅ Validación visual usando clases `is-valid` / `is-invalid`.
+ * ✅ Muestra texto de ayuda cuando los datos no son correctos.
+ * ✅ Reutiliza el mismo componente tanto para agregar como para editar.
+ */
 function Formulario({ agregarEvaluacion, editarValores, setEditarValores }) {
-  // Estados para almacenar los valores del formulario
-  const [nombre, setNombre] = useState('');
-  const [asignatura, setAsignatura] = useState('');
-  const [promedio, setPromedio] = useState('');
+  /* --------------------------- estado del formulario --------------------------- */
+  const [form, setForm] = useState({ nombre: "", asignatura: "", promedio: "" });
+  const [touched, setTouched] = useState({ nombre: false, asignatura: false, promedio: false });
 
-  // Efecto para prellenar el formulario cuando se está en modo edición
+  /* ---------------------------- cargar datos al editar -------------------------- */
   useEffect(() => {
     if (editarValores) {
-      setNombre(editarValores.nombre || ''); // Pone el nombre de la evaluación a editar
-      setAsignatura(editarValores.asignatura || ''); // Pone la asignatura de la evaluación a editar
-      setPromedio(editarValores.promedio || ''); // Pone el promedio de la evaluación a editar
+      setForm({
+        nombre: editarValores.nombre || "",
+        asignatura: editarValores.asignatura || "",
+        promedio:
+          editarValores.promedio !== undefined && editarValores.promedio !== null
+            ? editarValores.promedio
+            : "",
+      });
     }
-  }, [editarValores]); // Se ejecuta cuando cambia editarValores
+  }, [editarValores]);
 
-  // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault(); // Evita el recargo de la página
-    // Valida que los campos no estén vacíos y el promedio esté en rango (0-7)
-    if (nombre && asignatura && promedio >= 0 && promedio <= 7) {
-      agregarEvaluacion({ nombre, asignatura, promedio: parseFloat(promedio) }); // Envía la nueva o actualizada evaluación
-      setNombre(''); // Limpia el campo nombre
-      setAsignatura(''); // Limpia el campo asignatura
-      setPromedio(''); // Limpia el campo promedio
-      setEditarValores(null); // Sale del modo edición
-    } else {
-      alert('Por favor, ingrese datos válidos (promedio entre 0.0 y 7.0)'); // Muestra alerta si los datos son inválidos
-    }
+  /* --------------------------------- helpers ----------------------------------- */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+
+  const promedioNumber = parseFloat(form.promedio);
+  const isNombreValid = form.nombre.trim().length > 0;
+  const isAsignaturaValid = form.asignatura.trim().length > 0;
+  const isPromedioValid = !isNaN(promedioNumber) && promedioNumber >= 0 && promedioNumber <= 7;
+
+  const formIsValid = isNombreValid && isAsignaturaValid && isPromedioValid;
+
+  /* --------------------------------- submit ------------------------------------ */
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // marcamos todos los campos como tocados para disparar feedback visual
+    setTouched({ nombre: true, asignatura: true, promedio: true });
+
+    if (!formIsValid) return; // el usuario verá feedback en pantalla
+
+    agregarEvaluacion({
+      nombre: form.nombre.trim(),
+      asignatura: form.asignatura.trim(),
+      promedio: promedioNumber,
+    });
+
+    // reset
+    setForm({ nombre: "", asignatura: "", promedio: "" });
+    setTouched({ nombre: false, asignatura: false, promedio: false });
+    setEditarValores(null);
+  };
+
+  /* --------------------------------- render ------------------------------------ */
   return (
-    <form onSubmit={handleSubmit}>
-      <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" />
-      <input value={asignatura} onChange={(e) => setAsignatura(e.target.value)} placeholder="Asignatura" />
-      <input value={promedio} onChange={(e) => setPromedio(e.target.value)} type="number" min="0.0" max="7.0" step="0.1" placeholder="Promedio (0.0-7.0)" />
-      <button type="submit">{editarValores ? 'Actualizar Evaluación' : 'Agregar Evaluación'}</button>
+    <form onSubmit={handleSubmit} className="mb-4" noValidate>
+      {/* Nombre */}
+      <div className="mb-3">
+        <label className="form-label fw-semibold">Nombre del Alumno</label>
+        <input
+          name="nombre"
+          value={form.nombre}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="Ej: Juan Pérez"
+          className={`form-control shadow-sm ${
+            touched.nombre ? (isNombreValid ? "is-valid" : "is-invalid") : ""
+          }`}
+        />
+        <div className="invalid-feedback">Este campo es obligatorio.</div>
+      </div>
+
+      {/* Asignatura */}
+      <div className="mb-3">
+        <label className="form-label fw-semibold">Asignatura</label>
+        <input
+          name="asignatura"
+          value={form.asignatura}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="Ej: Matemáticas"
+          className={`form-control shadow-sm ${
+            touched.asignatura ? (isAsignaturaValid ? "is-valid" : "is-invalid") : ""
+          }`}
+        />
+        <div className="invalid-feedback">Este campo es obligatorio.</div>
+      </div>
+
+      {/* Promedio */}
+      <div className="mb-4">
+        <label className="form-label fw-semibold">Promedio (0.0 – 7.0)</label>
+        <input
+          name="promedio"
+          type="number"
+          step="0.1"
+          min="0"
+          max="7"
+          value={form.promedio}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="Ej: 6.5"
+          className={`form-control shadow-sm ${
+            touched.promedio ? (isPromedioValid ? "is-valid" : "is-invalid") : ""
+          }`}
+        />
+        <div className="invalid-feedback">
+          Ingresa un número entre 0.0 y 7.0.
+        </div>
+      </div>
+
+      <button type="submit" className="btn btn-primary w-100 fw-bold">
+        {editarValores ? "Actualizar Evaluación" : "Agregar Evaluación"}
+      </button>
     </form>
   );
 }

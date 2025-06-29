@@ -1,57 +1,85 @@
 import React, { useState, useEffect } from 'react';
-import Formulario from '../src/components/Formulario';
-import ListaEvaluaciones from '../src/components/ListaEvaluaciones';
+import Formulario from './components/Formulario';
+import ListaEvaluaciones from './components/ListaEvaluaciones';
 import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';   // ← necesitamos JS para toasts
 
-// Componente principal de la aplicación
 function App() {
-  // Estado para almacenar la lista de evaluaciones
   const [evaluaciones, setEvaluaciones] = useState([]);
-  // Estado para manejar los valores de la evaluación en modo edición
   const [editarValores, setEditarValores] = useState(null);
+  const [toastMsg, setToastMsg] = useState(null);
 
-  // Efecto para cargar evaluaciones guardadas al iniciar la aplicación
+  /* --- localStorage (igual) --- */
   useEffect(() => {
     const saved = localStorage.getItem('evaluaciones');
-    if (saved) setEvaluaciones(JSON.parse(saved)); // Carga desde localStorage si existe
-  }, []); // Se ejecuta solo al montar el componente
+    if (saved) setEvaluaciones(JSON.parse(saved));
+  }, []);
 
-  // Efecto para guardar evaluaciones en localStorage cuando cambian
   useEffect(() => {
-    localStorage.setItem('evaluaciones', JSON.stringify(evaluaciones)); // Guarda la lista en localStorage
-  }, [evaluaciones]); // Se ejecuta cada vez que cambia evaluaciones
+    localStorage.setItem('evaluaciones', JSON.stringify(evaluaciones));
+  }, [evaluaciones]);
 
-  // Función para agregar o actualizar una evaluación
+  /* --- helpers --- */
+  const mostrarToast = (msg) => {
+    setToastMsg(msg);
+    const toastEl = document.getElementById('mainToast');
+    if (toastEl) new window.bootstrap.Toast(toastEl).show();
+  };
+
   const agregarEvaluacion = (nuevaEval) => {
     if (editarValores !== null) {
-      const nuevasEvaluaciones = [...evaluaciones]; // Crea una copia de la lista
-      nuevasEvaluaciones[editarValores.index] = nuevaEval; // Actualiza la evaluación en el índice correspondiente
-      setEvaluaciones(nuevasEvaluaciones); // Actualiza el estado
-      setEditarValores(null); // Sale del modo edición
+      const nuevas = [...evaluaciones];
+      nuevas[editarValores.index] = nuevaEval;
+      setEvaluaciones(nuevas);
+      setEditarValores(null);
+      mostrarToast('¡Evaluación actualizada!');
     } else {
-      setEvaluaciones([...evaluaciones, nuevaEval]); // Agrega una nueva evaluación si no está en modo edición
+      setEvaluaciones([...evaluaciones, nuevaEval]);
+      mostrarToast('¡Evaluación agregada!');
     }
   };
 
-  // Función para eliminar una evaluación
-  const eliminarEvaluacion = (index) => {
-    setEvaluaciones(evaluaciones.filter((_, i) => i !== index)); // Filtra la lista eliminando el índice seleccionado
-  };
-
-  // Función para iniciar el modo edición
-  const editarEvaluacion = (index) => {
-    setEditarValores({ ...evaluaciones[index], index }); // Pasa los datos de la evaluación y su índice
+  const eliminarEvaluacion = (i) => {
+    setEvaluaciones(evaluaciones.filter((_, idx) => idx !== i));
+    mostrarToast('Evaluación eliminada');
   };
 
   return (
-    <div className="App">
-      <h2>Evaluación de Alumnos</h2>
-      <Formulario agregarEvaluacion={agregarEvaluacion} editarValores={editarValores} setEditarValores={setEditarValores} />
-      <ListaEvaluaciones
-        evaluaciones={evaluaciones}
-        eliminarEvaluacion={eliminarEvaluacion}
-        editarEvaluacion={editarEvaluacion}
-      />
+    <div className="app-container">
+      <div className="card p-4">
+        <h2 className="text-center mb-4">Evaluación de Alumnos</h2>
+
+        {/* Formulario */}
+        <Formulario
+          agregarEvaluacion={agregarEvaluacion}
+          editarValores={editarValores}
+          setEditarValores={setEditarValores}
+        />
+
+        <hr />
+
+        {/* Lista */}
+        <ListaEvaluaciones
+          evaluaciones={evaluaciones}
+          eliminarEvaluacion={eliminarEvaluacion}
+          editarEvaluacion={setEditarValores}
+        />
+      </div>
+
+      {/* Toast Bootstrap */}
+      <div
+        id="mainToast"
+        className="toast align-items-center text-bg-primary border-0 position-fixed bottom-0 end-0 m-4"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div className="d-flex">
+          <div className="toast-body">{toastMsg}</div>
+          <button type="button" className="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
     </div>
   );
 }
